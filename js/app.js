@@ -1,3 +1,11 @@
+async function hashPassword(msg) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(msg);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 function ps1Alert(message, callback) {
   const overlay = document.createElement('div');
   overlay.style.position = 'fixed';
@@ -226,8 +234,8 @@ function attachDashboardListeners() {
   document.querySelectorAll('.delete-task-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const taskId = e.currentTarget.getAttribute('data-id');
-      ps1Prompt('Enter password to delete task (hint: up up down down left right left right b a):', (password) => {
-        if (password && password.trim().toLowerCase() === 'konamicode') {
+      ps1Prompt('Enter password to delete task (hint: up up down down left right left right b a):', async (password) => {
+        if (password && (await hashPassword(password.trim().toLowerCase())) === 'ebec7f14a89e8e5612e5facc557951ffd5e13e1fb59418c2f30739256f64c56f') {
           AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
           saveState();
           render();
@@ -443,8 +451,8 @@ function attachHistoryListeners() {
   });
 
   document.getElementById('clear-history-btn').addEventListener('click', () => {
-    ps1Prompt('Enter password to format memory card (hint: up up down down left right left right b a):', (password) => {
-      if (password && password.trim().toLowerCase() === 'konamicode') {
+    ps1Prompt('Enter password to format memory card (hint: up up down down left right left right b a):', async (password) => {
+      if (password && (await hashPassword(password.trim().toLowerCase())) === 'ebec7f14a89e8e5612e5facc557951ffd5e13e1fb59418c2f30739256f64c56f') {
         AppState.archivedTasks = [];
         saveState();
         render();
