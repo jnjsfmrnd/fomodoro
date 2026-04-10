@@ -14,19 +14,19 @@ function ps1Alert(message, callback) {
   modal.style.minWidth = '300px';
   modal.style.maxWidth = '500px';
   modal.style.textAlign = 'center';
-  
+
   modal.innerHTML = `
     <h3 style="margin-bottom:20px; color:var(--ps1-text);">${message}</h3>
     <button id="ps1-alert-ok" style="min-width: 100px;">OK</button>
   `;
-  
+
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   document.getElementById('ps1-alert-ok').focus();
 
   document.getElementById('ps1-alert-ok').addEventListener('click', () => {
     document.body.removeChild(overlay);
-    if(callback) callback();
+    if (callback) callback();
   });
 }
 
@@ -45,7 +45,7 @@ function ps1Prompt(message, callback) {
   modal.className = 'ps1-panel';
   modal.style.minWidth = '300px';
   modal.style.textAlign = 'center';
-  
+
   modal.innerHTML = `
     <h3 style="margin-bottom:15px; color:var(--ps1-text); font-size:20px;">${message}</h3>
     <input type="text" id="ps1-prompt-input" style="margin-bottom:20px;" autocomplete="off" />
@@ -54,7 +54,7 @@ function ps1Prompt(message, callback) {
       <button id="ps1-prompt-cancel" style="color:red;">CANCEL</button>
     </div>
   `;
-  
+
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   document.getElementById('ps1-prompt-input').focus();
@@ -64,7 +64,7 @@ function ps1Prompt(message, callback) {
     document.body.removeChild(overlay);
     callback(val);
   });
-  
+
   document.getElementById('ps1-prompt-cancel').addEventListener('click', () => {
     document.body.removeChild(overlay);
     callback(null);
@@ -202,7 +202,7 @@ function attachDashboardListeners() {
     const name = document.getElementById('task-name').value;
     const hours = parseFloat(document.getElementById('task-hours').value);
     const segmentType = document.querySelector('input[name="task-segment"]:checked').value;
-    
+
     AppState.tasks.push({
       id: Date.now().toString(),
       name,
@@ -211,7 +211,7 @@ function attachDashboardListeners() {
       isCompleted: false,
       segmentType: segmentType
     });
-    
+
     saveState();
     render();
   });
@@ -226,7 +226,7 @@ function attachDashboardListeners() {
   document.querySelectorAll('.delete-task-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const taskId = e.currentTarget.getAttribute('data-id');
-      ps1Prompt('Enter password to delete task (hint: konamicode):', (password) => {
+      ps1Prompt('Enter password to delete task (hint: up up down down left right left right b a):', (password) => {
         if (password && password.trim().toLowerCase() === 'konamicode') {
           AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
           saveState();
@@ -259,11 +259,11 @@ function formatTime(seconds) {
 function renderTimer() {
   const task = AppState.tasks.find(t => t.id === AppState.activeTaskId);
   const hoursLeft = (task.remainingMinutes / 60).toFixed(1);
-  
-  const spriteClass = AppState.timer.mode === 'work' 
+
+  const spriteClass = AppState.timer.mode === 'work'
     ? (AppState.timer.isRunning ? 'dog-sprite-running' : 'dog-sprite-sitting')
     : 'dog-sprite-eating';
-  
+
   return `
     <div class="header-bar">
       <span>FOMODORO</span>
@@ -323,16 +323,16 @@ function attachTimerListeners() {
           abortClickCount = 0;
           const btn = document.getElementById('back-dashboard-btn');
           if (btn) {
-             btn.innerText = "ABORT & BACK";
-             btn.style.background = "#ffcccc";
-             btn.style.color = "black";
+            btn.innerText = "ABORT & BACK";
+            btn.style.background = "#ffcccc";
+            btn.style.color = "black";
           }
         }, 3000);
       } else {
         stopAndReturn();
       }
     } else {
-       stopAndReturn();
+      stopAndReturn();
     }
   });
 }
@@ -351,13 +351,13 @@ function handleTimerComplete() {
   AppState.timer.isRunning = false;
   const task = AppState.tasks.find(t => t.id === AppState.activeTaskId);
   const config = getSegmentConfig(task);
-  
+
   if (AppState.timer.mode === 'work') {
     // Work block finished, grant the time!
     const task = AppState.tasks.find(t => t.id === AppState.activeTaskId);
     task.remainingMinutes -= config.grant;
     saveState();
-    
+
     if (task.remainingMinutes <= 0) {
       task.isCompleted = true;
       task.remainingMinutes = 0;
@@ -441,9 +441,9 @@ function attachHistoryListeners() {
     AppState.view = 'dashboard';
     render();
   });
-  
+
   document.getElementById('clear-history-btn').addEventListener('click', () => {
-    ps1Prompt('Enter password to format memory card (hint: konamicode):', (password) => {
+    ps1Prompt('Enter password to format memory card (hint: up up down down left right left right b a):', (password) => {
       if (password && password.trim().toLowerCase() === 'konamicode') {
         AppState.archivedTasks = [];
         saveState();
