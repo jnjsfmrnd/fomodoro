@@ -188,7 +188,7 @@ input[type="text"], input[type="number"] {
 .dog-sprite-running {
   width: 150px;
   height: 65px;
-  background-image: url('strip_running.png');
+  background-image: url('../assets/strip_running.png');
   background-size: 600px auto;
   animation: playRunning 0.5s steps(4) infinite;
 }
@@ -196,7 +196,7 @@ input[type="text"], input[type="number"] {
 .dog-sprite-eating {
   width: 150px;
   height: 72px;
-  background-image: url('strip_eating.png');
+  background-image: url('../assets/strip_eating.png');
   background-size: 600px auto;
   animation: playEating 0.8s steps(4) infinite;
 }
@@ -204,7 +204,7 @@ input[type="text"], input[type="number"] {
 .dog-sprite-sitting {
   width: 90px;
   height: 80px;
-  background-image: url('strip_sitting.png');
+  background-image: url('../assets/strip_sitting.png');
   background-size: 360px auto;
   animation: playSitting 0.8s steps(4) infinite;
 }

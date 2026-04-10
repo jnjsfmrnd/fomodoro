@@ -1,8 +1,82 @@
+function ps1Alert(message, callback) {
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0'; overlay.style.left = '0';
+  overlay.style.width = '100vw'; overlay.style.height = '100vh';
+  overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  overlay.style.zIndex = '9999';
+
+  const modal = document.createElement('div');
+  modal.className = 'ps1-panel';
+  modal.style.minWidth = '300px';
+  modal.style.maxWidth = '500px';
+  modal.style.textAlign = 'center';
+  
+  modal.innerHTML = `
+    <h3 style="margin-bottom:20px; color:var(--ps1-text);">${message}</h3>
+    <button id="ps1-alert-ok" style="min-width: 100px;">OK</button>
+  `;
+  
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  document.getElementById('ps1-alert-ok').focus();
+
+  document.getElementById('ps1-alert-ok').addEventListener('click', () => {
+    document.body.removeChild(overlay);
+    if(callback) callback();
+  });
+}
+
+function ps1Prompt(message, callback) {
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0'; overlay.style.left = '0';
+  overlay.style.width = '100vw'; overlay.style.height = '100vh';
+  overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  overlay.style.zIndex = '9999';
+
+  const modal = document.createElement('div');
+  modal.className = 'ps1-panel';
+  modal.style.minWidth = '300px';
+  modal.style.textAlign = 'center';
+  
+  modal.innerHTML = `
+    <h3 style="margin-bottom:15px; color:var(--ps1-text); font-size:20px;">${message}</h3>
+    <input type="text" id="ps1-prompt-input" style="margin-bottom:20px;" autocomplete="off" />
+    <div style="display:flex; justify-content:space-around;">
+      <button id="ps1-prompt-ok">OK</button>
+      <button id="ps1-prompt-cancel" style="color:red;">CANCEL</button>
+    </div>
+  `;
+  
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  document.getElementById('ps1-prompt-input').focus();
+
+  document.getElementById('ps1-prompt-ok').addEventListener('click', () => {
+    const val = document.getElementById('ps1-prompt-input').value;
+    document.body.removeChild(overlay);
+    callback(val);
+  });
+  
+  document.getElementById('ps1-prompt-cancel').addEventListener('click', () => {
+    document.body.removeChild(overlay);
+    callback(null);
+  });
+}
+
 const AppState = {
   tasks: JSON.parse(localStorage.getItem('fomodoro_tasks')) || [],
+  archivedTasks: JSON.parse(localStorage.getItem('fomodoro_archived_tasks')) || [],
   settings: JSON.parse(localStorage.getItem('fomodoro_settings')) || { segmentType: '25/5' },
   activeTaskId: null,
-  view: 'dashboard', // 'dashboard' or 'timer'
+  view: 'dashboard', // 'dashboard', 'timer', or 'history'
   timer: {
     isRunning: false,
     mode: 'work', // 'work' or 'break'
@@ -16,6 +90,16 @@ if (typeof AppState.settings.segmentType === 'undefined') {
   AppState.settings = { segmentType: '25/5' };
 }
 
+// Migrate completed tasks to archives
+const previouslyCompleted = AppState.tasks.filter(t => t.isCompleted);
+if (previouslyCompleted.length > 0) {
+  previouslyCompleted.forEach(t => t.completedAt = new Date().toISOString());
+  AppState.archivedTasks.push(...previouslyCompleted);
+  AppState.tasks = AppState.tasks.filter(t => !t.isCompleted);
+  localStorage.setItem('fomodoro_tasks', JSON.stringify(AppState.tasks));
+  localStorage.setItem('fomodoro_archived_tasks', JSON.stringify(AppState.archivedTasks));
+}
+
 function getSegmentConfig(task) {
   if (task && task.segmentType === '50/10') {
     return { work: 50, break: 10, grant: 60 };
@@ -25,6 +109,7 @@ function getSegmentConfig(task) {
 
 function saveState() {
   localStorage.setItem('fomodoro_tasks', JSON.stringify(AppState.tasks));
+  localStorage.setItem('fomodoro_archived_tasks', JSON.stringify(AppState.archivedTasks));
   localStorage.setItem('fomodoro_settings', JSON.stringify(AppState.settings));
 }
 
@@ -36,6 +121,9 @@ function render() {
   } else if (AppState.view === 'timer') {
     appDiv.innerHTML = renderTimer();
     attachTimerListeners();
+  } else if (AppState.view === 'history') {
+    appDiv.innerHTML = renderHistory();
+    attachHistoryListeners();
   }
 }
 
@@ -59,7 +147,10 @@ function renderDashboard() {
   return `
     <div class="header-bar">
       <span>FOMODORO</span>
-      <span>v1.0</span>
+      <div>
+        <button id="view-history-btn" style="font-size:14px; padding:2px 8px; margin-right: 10px;">HISTORY</button>
+        <span>v1.0</span>
+      </div>
     </div>
     
     <div class="ps1-panel">
@@ -97,10 +188,15 @@ function renderDashboard() {
 }
 
 function attachDashboardListeners() {
+  document.getElementById('view-history-btn').addEventListener('click', () => {
+    AppState.view = 'history';
+    render();
+  });
+
   document.getElementById('add-task-form').addEventListener('submit', (e) => {
     e.preventDefault();
     if (AppState.tasks.length >= 3) {
-      alert('Maximum 3 tasks allowed at a time.');
+      ps1Alert('Maximum 3 tasks allowed at a time. Complete tasks to free up space!');
       return;
     }
     const name = document.getElementById('task-name').value;
@@ -129,15 +225,16 @@ function attachDashboardListeners() {
 
   document.querySelectorAll('.delete-task-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const password = prompt('Enter password to delete task:');
-      if (password === 'konamicode') {
-        const taskId = e.target.getAttribute('data-id');
-        AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
-        saveState();
-        render();
-      } else if (password !== null) {
-        alert('Incorrect password!');
-      }
+      const taskId = e.currentTarget.getAttribute('data-id');
+      ps1Prompt('Enter password to delete task (hint: konamicode):', (password) => {
+        if (password && password.trim().toLowerCase() === 'konamicode') {
+          AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+          saveState();
+          render();
+        } else if (password !== null) {
+          ps1Alert('Incorrect password!');
+        }
+      });
     });
   });
 }
@@ -264,24 +361,32 @@ function handleTimerComplete() {
     if (task.remainingMinutes <= 0) {
       task.isCompleted = true;
       task.remainingMinutes = 0;
+      task.completedAt = new Date().toISOString();
+      AppState.archivedTasks.push(task);
+      AppState.tasks = AppState.tasks.filter(t => t.id !== task.id);
       saveState();
-      alert('Task Complete! Great job! 🎉');
-      stopAndReturn();
+      ps1Alert('Task Complete! Great job! 🎉 It has been added to your Memory Card history.', () => {
+        stopAndReturn();
+      });
       return;
     } else {
       // Switch to break
       AppState.timer.mode = 'break';
       AppState.timer.timeRemainingSeconds = config.break * 60;
-      alert(`Work segment complete! We subtracted ${config.grant / 60} hour(s) from your task. Time to take a break!`);
+      ps1Alert(`Work segment complete! We subtracted ${config.grant / 60} hour(s) from your task. Time to take a break!`, () => {
+        render();
+      });
+      return; // prevent double render
     }
   } else {
     // Break finished
     AppState.timer.mode = 'work';
     AppState.timer.timeRemainingSeconds = config.work * 60;
-    alert('Break over. Back to the grind!');
+    ps1Alert('Break over. Back to the grind!', () => {
+      render();
+    });
+    return; // prevent double render
   }
-  
-  render();
 }
 
 function stopAndReturn() {
@@ -292,6 +397,63 @@ function stopAndReturn() {
   AppState.view = 'dashboard';
   AppState.activeTaskId = null;
   render();
+}
+
+function renderHistory() {
+  const historyItems = AppState.archivedTasks.map(task => {
+    const dateStr = task.completedAt ? new Date(task.completedAt).toLocaleDateString() : 'Unknown Date';
+    return `
+      <div class="task-list-item">
+        <div>
+          <strong>${task.name}</strong><br>
+          <small>Completed: ${dateStr}</small>
+        </div>
+        <div>
+          <span>${task.originalHours}h logged</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="header-bar">
+      <span>FOMODORO</span>
+      <div>
+        <button id="back-dash-btn" style="font-size:14px; padding:2px 8px; margin-right: 10px;">BACK</button>
+        <span>SYS_ARCHIVE</span>
+      </div>
+    </div>
+    
+    <div class="ps1-panel">
+      <h3>Memory Card - History</h3>
+      <div id="task-list">
+        ${historyItems.length === 0 ? '<p>No memory data found...</p>' : historyItems}
+      </div>
+      <div style="margin-top:20px; text-align:center;">
+        <button id="clear-history-btn" style="color:red; font-size:14px;">FORMAT MEMORY CARD</button>
+      </div>
+    </div>
+  `;
+}
+
+function attachHistoryListeners() {
+  document.getElementById('back-dash-btn').addEventListener('click', () => {
+    AppState.view = 'dashboard';
+    render();
+  });
+  
+  document.getElementById('clear-history-btn').addEventListener('click', () => {
+    ps1Prompt('Enter password to format memory card (hint: konamicode):', (password) => {
+      if (password && password.trim().toLowerCase() === 'konamicode') {
+        AppState.archivedTasks = [];
+        saveState();
+        render();
+        ps1Alert('Memory card formatted safely.');
+      } else if (password !== null) {
+        ps1Alert('Incorrect password! Format aborted.');
+      }
+    });
+  });
 }
 
 // Start app
