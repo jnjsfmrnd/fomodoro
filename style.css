@@ -160,3 +160,67 @@ input[type="text"], input[type="number"] {
 .hidden {
   display: none;
 }
+
+/* Dachshund Graphics */
+.dog-graphics-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0;
+  height: 120px;
+  overflow: hidden;
+}
+
+.dog-sprite {
+  background-repeat: no-repeat;
+  background-position: 0 bottom;
+  mix-blend-mode: multiply; /* Just in case some white is left over */
+  image-rendering: auto;
+}
+
+/* Fallback to pixelated if user zooms */
+@supports (image-rendering: pixelated) {
+  .dog-sprite {
+    image-rendering: pixelated;
+  }
+}
+
+.dog-sprite-running {
+  width: 150px;
+  height: 65px;
+  background-image: url('strip_running.png');
+  background-size: 600px auto;
+  animation: playRunning 0.5s steps(4) infinite;
+}
+
+.dog-sprite-eating {
+  width: 150px;
+  height: 72px;
+  background-image: url('strip_eating.png');
+  background-size: 600px auto;
+  animation: playEating 0.8s steps(4) infinite;
+}
+
+.dog-sprite-sitting {
+  width: 90px;
+  height: 80px;
+  background-image: url('strip_sitting.png');
+  background-size: 360px auto;
+  animation: playSitting 0.8s steps(4) infinite;
+}
+
+@keyframes playRunning {
+  0%   { background-position: 0px bottom; }
+  100% { background-position: -600px bottom; }
+}
+
+@keyframes playEating {
+  0%   { background-position: 0px bottom; }
+  100% { background-position: -600px bottom; }
+}
+
+@keyframes playSitting {
+  0%   { background-position: 0px bottom; }
+  100% { background-position: -360px bottom; }
+}
+

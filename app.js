@@ -48,7 +48,10 @@ function renderDashboard() {
           <strong>${task.name}</strong><br>
           <small>${hoursLeft}h / ${task.originalHours}h remaining</small>
         </div>
-        ${!task.isCompleted ? `<button class="start-task-btn" data-id="${task.id}">Start</button>` : '<span>DONE</span>'}
+        <div>
+          ${!task.isCompleted ? `<button class="start-task-btn" data-id="${task.id}">Start</button>` : '<span>DONE</span>'}
+          <button class="delete-task-btn" data-id="${task.id}" style="margin-left: 5px; color: red;">X</button>
+        </div>
       </div>
     `;
   }).join('');
@@ -96,6 +99,10 @@ function renderDashboard() {
 function attachDashboardListeners() {
   document.getElementById('add-task-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    if (AppState.tasks.length >= 3) {
+      alert('Maximum 3 tasks allowed at a time.');
+      return;
+    }
     const name = document.getElementById('task-name').value;
     const hours = parseFloat(document.getElementById('task-hours').value);
     const segmentType = document.querySelector('input[name="task-segment"]:checked').value;
@@ -117,6 +124,20 @@ function attachDashboardListeners() {
     btn.addEventListener('click', (e) => {
       const taskId = e.target.getAttribute('data-id');
       startTask(taskId);
+    });
+  });
+
+  document.querySelectorAll('.delete-task-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const password = prompt('Enter password to delete task:');
+      if (password === 'konamicode') {
+        const taskId = e.target.getAttribute('data-id');
+        AppState.tasks = AppState.tasks.filter(t => t.id !== taskId);
+        saveState();
+        render();
+      } else if (password !== null) {
+        alert('Incorrect password!');
+      }
     });
   });
 }
@@ -142,6 +163,10 @@ function renderTimer() {
   const task = AppState.tasks.find(t => t.id === AppState.activeTaskId);
   const hoursLeft = (task.remainingMinutes / 60).toFixed(1);
   
+  const spriteClass = AppState.timer.mode === 'work' 
+    ? (AppState.timer.isRunning ? 'dog-sprite-running' : 'dog-sprite-sitting')
+    : 'dog-sprite-eating';
+  
   return `
     <div class="header-bar">
       <span>FOMODORO</span>
@@ -159,8 +184,12 @@ function renderTimer() {
         ${formatTime(AppState.timer.timeRemainingSeconds)}
       </div>
 
+      <div class="dog-graphics-container">
+        <div class="dog-sprite ${spriteClass}"></div>
+      </div>
+
       <div class="timer-controls">
-        <button id="toggle-timer-btn">${AppState.timer.isRunning ? 'PAUSE' : 'START'}</button>
+        <button id="toggle-timer-btn" ${AppState.timer.mode === 'break' ? 'disabled' : ''}>${AppState.timer.isRunning ? 'PAUSE' : 'START'}</button>
       </div>
       
       <p style="font-size: 14px; margin-top: 15px; border: 1px dotted red; padding:5px;">
